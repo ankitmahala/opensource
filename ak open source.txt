@@ -1,0 +1,77 @@
+#! /bin/sh
+
+DarkGray='\033[1;30m'
+Red='\033[0;31m'
+Green='\033[0;32m'
+Orange='\033[0;33m'
+Yellow='\033[1;33m'
+Blue='\033[0;34m'
+Cyan='\033[0;36m'
+NC='\033[0m'
+
+USBLINK=$1
+USBPATH="/media/usb_dir/"
+BACKPATH="~/Desktop/backup/"
+
+get_relative_path()
+{
+  abs_path=$1
+  cur_dir=$2
+  rel_path=${abs_path#$cur_dir}
+  echo "$rel_path"
+}
+
+recur()
+{
+  cur_path=$1
+  echo "${Red}entering into $cur_path...${NC}"
+  for f in $cur_path/*; do
+    if [ -f "${f}" ]; then
+      rel_path=`get_relative_path "${f}" /media/usb_dir/`
+      echo "${Yellow}backing up ${rel_path}"
+      cp "${f}" ~/Desktop/backup/"${rel_path}"
+    fi
+
+    if [ -d "$f" ]; then
+      rel_path=`get_relative_path "${f}" /media/usb_dir/`
+      mkdir -p ~/Desktop/backup/$rel_path
+      echo "${Red}recurring for ${f}${NC}"
+      recur ${f}
+    fi
+  done;
+}
+sudo umount "${USBLINK}"
+
+if [ ! -d $USBPATH ]; then
+  echo "${Blue}creating $USBPATH...${NC}"
+  mkdir $USBPATH
+else 
+  echo "${Blue}$USBPATH exists!!!${NC}"
+fi
+sudo mount $USBLINK $USBPATH
+
+if [ ! -d ~/Desktop/backup ]; then
+  echo "${Green}creating directory for backup...${NC}"
+
+  mkdir ~/Desktop/backup
+else
+  echo "${Green}directory for backup exists!!!${NC}"
+fi
+
+cd $USBPATH
+recur /media/usb_dir
+
+echo "${Green}backup is complete!!!${NC}"
+
+echo "${Blue}\n\nCompressing the archive...${NC}"
+
+cd ~/Desktop/
+
+
+$(zip -er AnkitMahala.zip backup > /dev/null)	#r=recursive
+
+
+rm -rf backup/
+
+echo "${Green}done!!!${NC}"
+
